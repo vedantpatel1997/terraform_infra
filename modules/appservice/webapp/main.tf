@@ -13,14 +13,16 @@ resource "azurerm_linux_web_app" "this" {
   tags                = var.tags
 
   identity {
-    type = "SystemAssigned"
+    type         = "UserAssigned"
+    identity_ids = [var.user_assigned_identity_id]
   }
 
   site_config {
-    always_on                               = true
-    ftps_state                              = "Disabled"
-    minimum_tls_version                     = "1.2"
-    container_registry_use_managed_identity = true
+    always_on                                     = true
+    ftps_state                                    = "Disabled"
+    minimum_tls_version                           = "1.2"
+    container_registry_use_managed_identity       = true
+    container_registry_managed_identity_client_id = var.user_assigned_identity_client_id
 
     application_stack {
       docker_image_name   = "${var.image_repository}:${var.image_tag}"
@@ -45,7 +47,7 @@ resource "azurerm_linux_web_app" "this" {
 resource "azurerm_role_assignment" "acr_pull" {
   scope                = var.acr_id
   role_definition_name = "AcrPull"
-  principal_id         = azurerm_linux_web_app.this.identity[0].principal_id
+  principal_id         = var.user_assigned_identity_principal_id
 }
 
 resource "azurerm_private_endpoint" "web" {
