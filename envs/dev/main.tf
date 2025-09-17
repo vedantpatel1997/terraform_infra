@@ -1,10 +1,41 @@
 locals {
   tags = var.tags
+
+  naming_tokens = {
+    org     = var.org_code
+    project = var.project_code
+    env     = var.environment
+    purpose = var.identity_purpose
+  }
+
+  normalized_tokens = {
+    for key, value in local.naming_tokens :
+    key => replace(
+      replace(
+        replace(lower(trimspace(value)), "_", "-"),
+        " ",
+        "-",
+      ),
+      "--",
+      "-",
+    )
+  }
+
+  user_assigned_identity_name = coalesce(
+    var.user_assigned_identity_name,
+    format(
+      "uai-%s-%s-%s-%s",
+      local.normalized_tokens.org,
+      local.normalized_tokens.project,
+      local.normalized_tokens.env,
+      local.normalized_tokens.purpose,
+    ),
+  )
 }
 
 module "network" {
   source             = "../../modules/network"
-  env                = "dev"
+  env                = var.environment
   rg_name            = var.rg_net
   location           = var.location
   vnet_name          = var.vnet_name
@@ -43,7 +74,7 @@ module "appservice_plan" {
 }
 
 resource "azurerm_user_assigned_identity" "webapp" {
-  name                = "${var.app_name}-uami"
+  name                = local.user_assigned_identity_name
   location            = var.location
   resource_group_name = var.rg_app
   tags                = local.tags

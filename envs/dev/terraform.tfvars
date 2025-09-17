@@ -1,7 +1,11 @@
 subscription_id = "6a3bb170-5159-4bff-860b-aa74fb762697"
 tenant_id       = "be945e7a-2e17-4b44-926f-512e85873eec"
 
-location = "westus3"
+location         = "westus3"
+org_code         = "vkp"
+project_code     = "orders"
+environment      = "dev"
+identity_purpose = "webapp"
 tags = {
   env   = "dev"
   owner = "vedant"
