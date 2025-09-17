@@ -8,7 +8,3 @@ output "web_zone_id" {
   value       = azurerm_private_dns_zone.this["web"].id
 }
 
-output "scm_zone_id" {
-  description = "Resource ID of the SCM private DNS zone."
-  value       = azurerm_private_dns_zone.this["scm"].id
-}

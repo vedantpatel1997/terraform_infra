@@ -55,12 +55,7 @@ variable "pe_subnet_id" {
 
 variable "web_zone_id" {
   type        = string
-  description = "Private DNS zone ID for Web App."
-}
-
-variable "scm_zone_id" {
-  type        = string
-  description = "Private DNS zone ID for SCM site."
+  description = "Private DNS zone ID used for both Web App and SCM endpoints."
 }
 
 variable "app_settings" {

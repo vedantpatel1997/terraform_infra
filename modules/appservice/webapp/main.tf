@@ -19,7 +19,6 @@ resource "azurerm_linux_web_app" "this" {
   site_config {
     always_on                               = true
     ftps_state                              = "Disabled"
-    health_check_path                       = "/health"
     minimum_tls_version                     = "1.2"
     container_registry_use_managed_identity = true
 
@@ -85,6 +84,6 @@ resource "azurerm_private_endpoint" "scm" {
 
   private_dns_zone_group {
     name                 = "scm-dns"
-    private_dns_zone_ids = [var.scm_zone_id]
+    private_dns_zone_ids = [var.web_zone_id]
   }
 }
