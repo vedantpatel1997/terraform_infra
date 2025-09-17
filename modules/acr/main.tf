@@ -14,7 +14,7 @@ resource "azurerm_container_registry" "this" {
 
   network_rule_bypass_option    = "AzureServices"
   public_network_access_enabled = false
-  zone_redundancy_enabled       = true
+  zone_redundancy_enabled       = false
 }
 
 resource "azurerm_private_endpoint" "this" {

@@ -12,9 +12,6 @@ locals {
     web = {
       name = "privatelink.azurewebsites.net"
     }
-    scm = {
-      name = "privatelink.scm.azurewebsites.net"
-    }
   }
 }
 

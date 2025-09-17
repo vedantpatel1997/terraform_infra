@@ -56,7 +56,6 @@ module "webapp" {
   appsvc_integration_subnet_id = module.network.appsvc_integration_snet_id
   pe_subnet_id                 = module.network.pe_snet_id
   web_zone_id                  = module.dns.web_zone_id
-  scm_zone_id                  = module.dns.scm_zone_id
   app_settings                 = {}
   tags                         = local.tags
 }

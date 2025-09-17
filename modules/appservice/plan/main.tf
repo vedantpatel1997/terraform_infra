@@ -13,5 +13,5 @@ resource "azurerm_service_plan" "this" {
   tags                = var.tags
 
   per_site_scaling_enabled = false
-  zone_balancing_enabled   = true
+  zone_balancing_enabled   = false
 }
