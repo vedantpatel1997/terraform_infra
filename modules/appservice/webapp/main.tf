@@ -17,10 +17,10 @@ resource "azurerm_linux_web_app" "this" {
   }
 
   site_config {
-    always_on                              = true
-    ftps_state                             = "Disabled"
-    health_check_path                      = "/health"
-    minimum_tls_version                    = "1.2"
+    always_on                               = true
+    ftps_state                              = "Disabled"
+    health_check_path                       = "/health"
+    minimum_tls_version                     = "1.2"
     container_registry_use_managed_identity = true
 
     application_stack {

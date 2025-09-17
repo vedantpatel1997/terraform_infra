@@ -33,10 +33,10 @@ resource "azurerm_subnet" "app_service_integration" {
 }
 
 resource "azurerm_subnet" "private_endpoint" {
-  name                                           = "${var.env}-private-endpoints"
-  resource_group_name                            = azurerm_resource_group.this.name
-  virtual_network_name                           = azurerm_virtual_network.this.name
-  address_prefixes                               = [var.snet_pe_prefix]
-  private_endpoint_network_policies_enabled      = false
-  private_link_service_network_policies_enabled  = false
+  name                                          = "${var.env}-private-endpoints"
+  resource_group_name                           = azurerm_resource_group.this.name
+  virtual_network_name                          = azurerm_virtual_network.this.name
+  address_prefixes                              = [var.snet_pe_prefix]
+  private_endpoint_network_policies             = "Disabled"
+  private_link_service_network_policies_enabled = false
 }
