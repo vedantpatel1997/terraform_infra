@@ -45,6 +45,7 @@ resource "azurerm_linux_web_app" "this" {
 }
 
 resource "azurerm_role_assignment" "acr_pull" {
+  count                = var.enable_acr_pull_role_assignment ? 1 : 0
   scope                = var.acr_id
   role_definition_name = "AcrPull"
   principal_id         = var.user_assigned_identity_principal_id

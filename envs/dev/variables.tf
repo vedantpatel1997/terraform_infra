@@ -58,27 +58,34 @@ variable "plan_sku" {
   type = string
 }
 
-variable "image_repository" {
-  type = string
-}
-
-variable "image_tag" {
-  type = string
-}
-
-variable "container_port" {
-  type = number
-}
-
-variable "app_component" {
-  description = "Functional name of the web application component (for example, orders)."
-  type        = string
-}
-
 variable "appservice_plan_purpose" {
   description = "Descriptor for the App Service plan workload or runtime (for example, linux)."
   type        = string
   default     = "linux"
+}
+
+variable "frontend_image_repository" {
+  type = string
+}
+
+variable "frontend_image_tag" {
+  type = string
+}
+
+variable "frontend_container_port" {
+  type = number
+}
+
+variable "backend_image_repository" {
+  type = string
+}
+
+variable "backend_image_tag" {
+  type = string
+}
+
+variable "backend_container_port" {
+  type = number
 }
 
 variable "naming_overrides" {

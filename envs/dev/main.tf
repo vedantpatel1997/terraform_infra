@@ -1,6 +1,5 @@
 locals {
   raw_custom_tokens = {
-    app_component          = var.app_component
     appservice_plan_option = var.appservice_plan_purpose
     identity_purpose       = var.identity_purpose
   }
@@ -58,13 +57,17 @@ locals {
       purpose    = format("plan-%s", local.sanitized_custom_tokens.appservice_plan_option)
       max_length = 40
     }
-    webapp = {
-      purpose    = format("app-%s", local.sanitized_custom_tokens.app_component)
-      max_length = 60
-    }
     identity = {
       purpose    = format("id-%s", local.sanitized_custom_tokens.identity_purpose)
       max_length = 80
+    }
+    webapp_frontend = {
+      purpose    = "app-frontend"
+      max_length = 60
+    }
+    webapp_backend = {
+      purpose    = "app-backend"
+      max_length = 60
     }
   }
 
@@ -147,17 +150,17 @@ resource "azurerm_user_assigned_identity" "webapp" {
   depends_on = [module.appservice_plan]
 }
 
-module "webapp" {
+module "webapp_frontend" {
   source                              = "../../modules/appservice/webapp"
   rg_name                             = local.resource_names.rg_app
   location                            = var.location
   plan_id                             = module.appservice_plan.plan_id
   acr_id                              = module.acr.id
   acr_login_server                    = module.acr.login_server
-  app_name                            = local.resource_names.webapp
-  image_repository                    = var.image_repository
-  image_tag                           = var.image_tag
-  container_port                      = var.container_port
+  app_name                            = local.resource_names.webapp_frontend
+  image_repository                    = var.frontend_image_repository
+  image_tag                           = var.frontend_image_tag
+  container_port                      = var.frontend_container_port
   appsvc_integration_subnet_id        = module.network.appsvc_integration_snet_id
   pe_subnet_id                        = module.network.pe_snet_id
   web_zone_id                         = module.dns.web_zone_id
@@ -168,10 +171,36 @@ module "webapp" {
   tags                                = local.tags
 }
 
+module "webapp_backend" {
+  source                              = "../../modules/appservice/webapp"
+  rg_name                             = local.resource_names.rg_app
+  location                            = var.location
+  plan_id                             = module.appservice_plan.plan_id
+  acr_id                              = module.acr.id
+  acr_login_server                    = module.acr.login_server
+  app_name                            = local.resource_names.webapp_backend
+  image_repository                    = var.backend_image_repository
+  image_tag                           = var.backend_image_tag
+  container_port                      = var.backend_container_port
+  appsvc_integration_subnet_id        = module.network.appsvc_integration_snet_id
+  pe_subnet_id                        = module.network.pe_snet_id
+  web_zone_id                         = module.dns.web_zone_id
+  app_settings                        = {}
+  user_assigned_identity_id           = azurerm_user_assigned_identity.webapp.id
+  user_assigned_identity_client_id    = azurerm_user_assigned_identity.webapp.client_id
+  user_assigned_identity_principal_id = azurerm_user_assigned_identity.webapp.principal_id
+  enable_acr_pull_role_assignment     = false
+  tags                                = local.tags
+}
+
 output "acr_login_server" {
   value = module.acr.login_server
 }
 
-output "webapp_name" {
-  value = module.webapp.app_name
+output "frontend_webapp_name" {
+  value = module.webapp_frontend.app_name
+}
+
+output "backend_webapp_name" {
+  value = module.webapp_backend.app_name
 }
