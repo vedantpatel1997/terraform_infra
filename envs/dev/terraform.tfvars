@@ -15,10 +15,10 @@ vnet_cidr        = "10.51.0.0/16"
 snet_appsvc_cidr = "10.51.1.0/24"
 snet_pe_cidr     = "10.51.2.0/24"
 
-plan_sku                    = "P0v3"
-frontend_image_repository   = "org/frontend"
-frontend_image_tag          = "bootstrap"
-frontend_container_port     = 8080
-backend_image_repository    = "org/backend"
-backend_image_tag           = "bootstrap"
-backend_container_port      = 8080
+plan_sku                  = "P0v3"
+frontend_image_repository = "org/frontend"
+frontend_image_tag        = "bootstrap"
+frontend_container_port   = 8080
+backend_image_repository  = "org/backend"
+backend_image_tag         = "bootstrap"
+backend_container_port    = 8080

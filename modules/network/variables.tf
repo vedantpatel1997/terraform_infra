@@ -18,24 +18,25 @@ variable "vnet_address_space" {
   description = "Address space for the virtual network."
 }
 
-variable "snet_appsvc_prefix" {
+variable "env" {
   type        = string
-  description = "CIDR prefix for the App Service integration subnet."
+  description = "Environment code used for network-scoped resources."
 }
 
-variable "snet_appsvc_name" {
-  type        = string
-  description = "Name of the App Service integration subnet."
+variable "appsvc_subnet" {
+  type = object({
+    name   = string
+    prefix = string
+  })
+  description = "Configuration for the App Service integration subnet."
 }
 
-variable "snet_pe_prefix" {
-  type        = string
-  description = "CIDR prefix for the private endpoint subnet."
-}
-
-variable "snet_pe_name" {
-  type        = string
-  description = "Name of the private endpoint subnet."
+variable "private_endpoint_subnet" {
+  type = object({
+    name   = string
+    prefix = string
+  })
+  description = "Configuration for the private endpoint subnet."
 }
 
 variable "tags" {
