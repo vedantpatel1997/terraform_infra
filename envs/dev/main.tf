@@ -3,15 +3,15 @@ locals {
 }
 
 module "network" {
-  source              = "../../modules/network"
-  env                 = "dev"
-  rg_name             = var.rg_net
-  location            = var.location
-  vnet_name           = var.vnet_name
-  vnet_address_space  = [var.vnet_cidr]
-  snet_appsvc_prefix  = var.snet_appsvc_cidr
-  snet_pe_prefix      = var.snet_pe_cidr
-  tags                = local.tags
+  source             = "../../modules/network"
+  env                = "dev"
+  rg_name            = var.rg_net
+  location           = var.location
+  vnet_name          = var.vnet_name
+  vnet_address_space = [var.vnet_cidr]
+  snet_appsvc_prefix = var.snet_appsvc_cidr
+  snet_pe_prefix     = var.snet_pe_cidr
+  tags               = local.tags
 }
 
 module "dns" {
@@ -62,4 +62,4 @@ module "webapp" {
 }
 
 output "acr_login_server" { value = module.acr.login_server }
-output "webapp_name"      { value = module.webapp.app_name }
+output "webapp_name" { value = module.webapp.app_name }
