@@ -68,22 +68,3 @@ resource "azurerm_private_endpoint" "web" {
   }
 }
 
-resource "azurerm_private_endpoint" "scm" {
-  name                = "${var.app_name}-pep-scm"
-  location            = var.location
-  resource_group_name = var.rg_name
-  subnet_id           = var.pe_subnet_id
-  tags                = var.tags
-
-  private_service_connection {
-    name                           = "${var.app_name}-scm"
-    private_connection_resource_id = azurerm_linux_web_app.this.id
-    subresource_names              = ["scm"]
-    is_manual_connection           = false
-  }
-
-  private_dns_zone_group {
-    name                 = "scm-dns"
-    private_dns_zone_ids = [var.web_zone_id]
-  }
-}
