@@ -10,6 +10,33 @@ variable "location" {
   type = string
 }
 
+variable "org_code" {
+  description = "Short code that identifies the organization (for example, vkp)."
+  type        = string
+}
+
+variable "project_code" {
+  description = "Short code that identifies the workload or project the resources belong to."
+  type        = string
+}
+
+variable "environment" {
+  description = "Deployment environment name (for example, dev, qa, prod)."
+  type        = string
+}
+
+variable "identity_purpose" {
+  description = "Describes what the user-assigned identity will be attached to (for example, webapp)."
+  type        = string
+  default     = "webapp"
+}
+
+variable "user_assigned_identity_name" {
+  description = "Optional override for the user-assigned identity resource name."
+  type        = string
+  default     = null
+}
+
 variable "tags" {
   type    = map(string)
   default = {}
