@@ -50,11 +50,14 @@ locals {
         ),
         "-",
       )
-      resource_type = lookup(definition, "resource_type", "generic")
-      max_length = lookup(
-        definition,
-        "max_length",
-        lookup(local.default_max_length, lookup(definition, "resource_type", "generic"), 80),
+      resource_type = coalesce(lookup(definition, "resource_type", null), "generic")
+      max_length = coalesce(
+        lookup(definition, "max_length", null),
+        lookup(
+          local.default_max_length,
+          coalesce(lookup(definition, "resource_type", null), "generic"),
+          80,
+        ),
       )
     }
   }
