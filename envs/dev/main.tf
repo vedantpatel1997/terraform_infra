@@ -76,8 +76,10 @@ module "appservice_plan" {
 resource "azurerm_user_assigned_identity" "webapp" {
   name                = local.user_assigned_identity_name
   location            = var.location
-  resource_group_name = var.rg_app
+  resource_group_name = module.appservice_plan.resource_group_name
   tags                = local.tags
+
+  depends_on = [module.appservice_plan]
 }
 
 module "webapp" {
