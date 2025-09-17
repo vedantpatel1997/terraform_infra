@@ -84,3 +84,9 @@ variable "tags" {
   description = "Tags to apply to resources."
   default     = {}
 }
+
+variable "enable_acr_pull_role_assignment" {
+  type        = bool
+  description = "Controls whether an AcrPull role assignment is created for the provided identity."
+  default     = true
+}
