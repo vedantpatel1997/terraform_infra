@@ -24,7 +24,7 @@ locals {
   user_assigned_identity_name = coalesce(
     var.user_assigned_identity_name,
     format(
-      "uai-%s-%s-%s-%s",
+      "uami-%s-%s-%s-%s",
       local.normalized_tokens.org,
       local.normalized_tokens.project,
       local.normalized_tokens.env,

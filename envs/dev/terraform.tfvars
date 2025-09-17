@@ -3,7 +3,7 @@ tenant_id       = "be945e7a-2e17-4b44-926f-512e85873eec"
 
 location         = "westus3"
 org_code         = "vkp"
-project_code     = "orders"
+project_code     = "library"
 environment      = "dev"
 identity_purpose = "webapp"
 tags = {
