@@ -64,6 +64,21 @@ variable "app_settings" {
   default     = {}
 }
 
+variable "user_assigned_identity_id" {
+  type        = string
+  description = "Resource ID of the user-assigned managed identity used by the Web App."
+}
+
+variable "user_assigned_identity_client_id" {
+  type        = string
+  description = "Client ID of the user-assigned managed identity used by the Web App."
+}
+
+variable "user_assigned_identity_principal_id" {
+  type        = string
+  description = "Principal ID of the user-assigned managed identity used by the Web App."
+}
+
 variable "tags" {
   type        = map(string)
   description = "Tags to apply to resources."

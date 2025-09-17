@@ -4,6 +4,6 @@ output "app_name" {
 }
 
 output "principal_id" {
-  description = "System assigned identity principal ID for the Web App."
+  description = "Managed identity principal ID for the Web App."
   value       = azurerm_linux_web_app.this.identity[0].principal_id
 }
