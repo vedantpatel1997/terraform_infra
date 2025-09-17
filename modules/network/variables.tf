@@ -1,8 +1,3 @@
-variable "env" {
-  type        = string
-  description = "Environment name used for resource naming."
-}
-
 variable "rg_name" {
   type        = string
   description = "Name of the resource group for networking resources."
@@ -28,9 +23,19 @@ variable "snet_appsvc_prefix" {
   description = "CIDR prefix for the App Service integration subnet."
 }
 
+variable "snet_appsvc_name" {
+  type        = string
+  description = "Name of the App Service integration subnet."
+}
+
 variable "snet_pe_prefix" {
   type        = string
   description = "CIDR prefix for the private endpoint subnet."
+}
+
+variable "snet_pe_name" {
+  type        = string
+  description = "Name of the private endpoint subnet."
 }
 
 variable "tags" {
