@@ -1,0 +1,58 @@
+# ----------------------------------------------------
+# 1. Navigate to your environment folder
+# ----------------------------------------------------
+cd C:\Users\Vedant Patel\Desktop\terraform_infra\envs\dev
+
+
+# ----------------------------------------------------
+# 2. Initialize Terraform
+# (Downloads provider plugins, sets up backend in Azure Storage)
+# Run only once per project OR after provider/backend changes
+# ----------------------------------------------------
+terraform init
+
+
+# ----------------------------------------------------
+# 3. Validate configuration
+# (Quick syntax + structural check of your .tf files)
+# ----------------------------------------------------
+terraform validate
+
+
+# ----------------------------------------------------
+# 4. Preview changes
+# (Shows what Terraform will CREATE/UPDATE/DESTROY in Azure)
+# The -out=tfplan flag saves the plan to a file for consistent apply
+# ----------------------------------------------------
+terraform plan -out=tfplan
+
+
+# ----------------------------------------------------
+# 5. Apply changes
+# (Executes the saved plan and provisions resources in Azure)
+# Always use the saved plan so you know exactly what’s applied
+# ----------------------------------------------------
+terraform apply "tfplan"
+
+
+# ----------------------------------------------------
+# 6. Check outputs (optional)
+# (Shows any outputs defined in your main.tf for quick reference)
+# ----------------------------------------------------
+terraform output
+
+
+# ----------------------------------------------------
+# 7. Update infrastructure later
+# (Repeat plan+apply after editing variables.tfvars or modules)
+# ----------------------------------------------------
+terraform plan -out=tfplan
+terraform apply "tfplan"
+
+
+# ----------------------------------------------------
+# 8. Destroy resources
+# (Removes everything defined in this environment’s state file)
+# Use with caution! This will delete all managed Azure resources.
+# ----------------------------------------------------
+terraform destroy
