@@ -18,7 +18,7 @@ resource "azurerm_subnet" "app_service_integration" {
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = [var.snet_appsvc_prefix]
 
-  delegations {
+  delegation {
     name = "appsvc-delegation"
 
     service_delegation {
