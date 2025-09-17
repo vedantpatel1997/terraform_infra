@@ -42,26 +42,6 @@ variable "tags" {
   default = {}
 }
 
-variable "rg_net" {
-  type = string
-}
-
-variable "rg_acr" {
-  type = string
-}
-
-variable "rg_dns" {
-  type = string
-}
-
-variable "rg_app" {
-  type = string
-}
-
-variable "vnet_name" {
-  type = string
-}
-
 variable "vnet_cidr" {
   type = string
 }
@@ -74,19 +54,7 @@ variable "snet_pe_cidr" {
   type = string
 }
 
-variable "acr_name" {
-  type = string
-}
-
-variable "plan_name" {
-  type = string
-}
-
 variable "plan_sku" {
-  type = string
-}
-
-variable "app_name" {
   type = string
 }
 
@@ -100,4 +68,25 @@ variable "image_tag" {
 
 variable "container_port" {
   type = number
+}
+
+variable "app_component" {
+  description = "Functional name of the web application component (for example, orders)."
+  type        = string
+}
+
+variable "appservice_plan_purpose" {
+  description = "Descriptor for the App Service plan workload or runtime (for example, linux)."
+  type        = string
+  default     = "linux"
+}
+
+variable "naming_overrides" {
+  description = "Optional map to override the default naming purposes or constraints for specific resources."
+  type = map(object({
+    purpose       = string
+    resource_type = optional(string)
+    max_length    = optional(number)
+  }))
+  default = {}
 }
