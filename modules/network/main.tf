@@ -13,10 +13,10 @@ resource "azurerm_virtual_network" "this" {
 }
 
 resource "azurerm_subnet" "app_service_integration" {
-  name                 = var.snet_appsvc_name
+  name                 = var.appsvc_subnet.name
   resource_group_name  = azurerm_resource_group.this.name
   virtual_network_name = azurerm_virtual_network.this.name
-  address_prefixes     = [var.snet_appsvc_prefix]
+  address_prefixes     = [var.appsvc_subnet.prefix]
 
   delegation {
     name = "appsvc-delegation"
@@ -33,10 +33,10 @@ resource "azurerm_subnet" "app_service_integration" {
 }
 
 resource "azurerm_subnet" "private_endpoint" {
-  name                                          = var.snet_pe_name
+  name                                          = var.private_endpoint_subnet.name
   resource_group_name                           = azurerm_resource_group.this.name
   virtual_network_name                          = azurerm_virtual_network.this.name
-  address_prefixes                              = [var.snet_pe_prefix]
+  address_prefixes                              = [var.private_endpoint_subnet.prefix]
   private_endpoint_network_policies             = "Disabled"
   private_link_service_network_policies_enabled = false
 }

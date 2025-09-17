@@ -106,11 +106,16 @@ module "network" {
   location           = var.location
   vnet_name          = local.resource_names.vnet
   vnet_address_space = [var.vnet_cidr]
-  snet_appsvc_name   = local.resource_names.snet_appsvc
-  snet_appsvc_prefix = var.snet_appsvc_cidr
-  snet_pe_name       = local.resource_names.snet_private_endpoint
-  snet_pe_prefix     = var.snet_pe_cidr
-  tags               = local.tags
+  env                = module.naming.tokens.environment
+  appsvc_subnet = {
+    name   = local.resource_names.snet_appsvc
+    prefix = var.snet_appsvc_cidr
+  }
+  private_endpoint_subnet = {
+    name   = local.resource_names.snet_private_endpoint
+    prefix = var.snet_pe_cidr
+  }
+  tags = local.tags
 }
 
 module "dns" {
