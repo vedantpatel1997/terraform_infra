@@ -6,34 +6,12 @@ variable "tenant_id" {
   type = string
 }
 
-variable "spoke_client_id" {
-  type = string
-}
-
-variable "spoke_client_secret" {
-  type      = string
-  sensitive = true
-}
-
-variable "spoke_client_object_id" {
-  type = string
-}
-
 variable "hub_subscription_id" {
   type = string
 }
 
 variable "hub_tenant_id" {
   type = string
-}
-
-variable "hub_client_id" {
-  type = string
-}
-
-variable "hub_client_secret" {
-  type      = string
-  sensitive = true
 }
 
 variable "hub_resource_group_name" {
