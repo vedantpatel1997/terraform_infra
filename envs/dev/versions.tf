@@ -20,10 +20,11 @@ provider "azurerm" {
     }
   }
 
-  subscription_id = var.subscription_id
-  tenant_id       = var.tenant_id
-  client_id       = var.spoke_client_id
-  client_secret   = var.spoke_client_secret
+  subscription_id                 = var.subscription_id
+  tenant_id                       = var.tenant_id
+  client_id                       = var.spoke_client_id
+  client_secret                   = var.spoke_client_secret
+  resource_provider_registrations = "none"
 }
 
 provider "azurerm" {
@@ -31,10 +32,11 @@ provider "azurerm" {
 
   features {}
 
-  subscription_id = var.hub_subscription_id
-  tenant_id       = var.hub_tenant_id
-  client_id       = var.hub_client_id
-  client_secret   = var.hub_client_secret
+  subscription_id                 = var.hub_subscription_id
+  tenant_id                       = var.hub_tenant_id
+  client_id                       = var.hub_client_id
+  client_secret                   = var.hub_client_secret
+  resource_provider_registrations = "none"
 }
 
 provider "azapi" {
