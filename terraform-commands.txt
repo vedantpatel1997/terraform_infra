@@ -55,4 +55,4 @@ terraform apply "tfplan"
 # (Removes everything defined in this environment’s state file)
 # Use with caution! This will delete all managed Azure resources.
 # ----------------------------------------------------
-terraform destroy
+terraform destroy -auto-approve
