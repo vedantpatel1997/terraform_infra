@@ -10,12 +10,18 @@ variable "location" {
 
 variable "vnet_id" {
   type        = string
-  description = "ID of the virtual network to link with the private DNS zones."
+  description = "ID of the virtual network that hosts the private endpoints consuming the zones."
 }
 
 variable "vnet_name" {
   type        = string
-  description = "Name of the virtual network for naming DNS links."
+  description = "Name used when constructing private DNS link resource names."
+}
+
+variable "linked_vnet_ids" {
+  type        = list(string)
+  description = "List of virtual network resource IDs that should be linked to each private DNS zone."
+  default     = []
 }
 
 variable "tags" {
