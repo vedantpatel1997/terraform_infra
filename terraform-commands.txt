@@ -1,84 +1,95 @@
-# ----------------------------------------------------
-# 0. (One-time) Ensure the remote state container exists
-# ----------------------------------------------------
-# Authenticate with Azure using Azure AD (CLI or Service Principal) before
-# provisioning the backend container or running Terraform commands.
-# az login --tenant 6a3bb170-5159-4bff-860b-aa74fb762697
-# az account set --subscription 6a3bb170-5159-4bff-860b-aa74fb762697
-#
-# Create the storage container if it does not already exist. Account keys are
-# disabled on the storage account so use Azure AD auth via the CLI.
-# az storage container create \
-#   --account-name storageaccountvp \
-#   --name tfstate \
-#   --auth-mode login \
-#   --public-access off
-#
-# Ensure the user or service principal that will run Terraform has a role with
-# data plane access to the container (for example, Storage Blob Data
-# Contributor). Replace <principal-id> with the object ID of your identity.
-# az role assignment create \
-#   --assignee-object-id <principal-id> \
-#   --assignee-principal-type User \
-#   --role "Storage Blob Data Contributor" \
-#   --scope "/subscriptions/6a3bb170-5159-4bff-860b-aa74fb762697/resourceGroups/Wordpress-PHP/providers/Microsoft.Storage/storageAccounts/storageaccountvp"
-# ----------------------------------------------------
+# -----------------------------------------------------------------------------
+# 0. Bootstrap authentication (run once)
+# -----------------------------------------------------------------------------
+# Create or reuse the service principal that Terraform will use. Replace the
+# placeholder values with your identifiers. See README.md for detailed context.
+az login
 
-# ----------------------------------------------------
+SPOKE_SUBSCRIPTION="<spoke-subscription-guid>"
+HUB_SUBSCRIPTION="<hub-subscription-guid>"
+HUB_VNET_SCOPE="/subscriptions/${HUB_SUBSCRIPTION}/resourceGroups/<hub-rg>/providers/Microsoft.Network/virtualNetworks/<hub-vnet-name>"
+STATE_SCOPE="/subscriptions/${SPOKE_SUBSCRIPTION}/resourceGroups/<state-rg>/providers/Microsoft.Storage/storageAccounts/<state-storage-account>"
+SP_NAME="sp-terraform-hub-spoke"
+
+# Create the service principal with Contributor on the spoke subscription
+az ad sp create-for-rbac \
+  --name "${SP_NAME}" \
+  --role Contributor \
+  --scopes "/subscriptions/${SPOKE_SUBSCRIPTION}"
+
+# Allow Terraform to manage the hub-to-spoke peering
+az role assignment create \
+  --assignee "${SP_NAME}" \
+  --role "Network Contributor" \
+  --scope "${HUB_VNET_SCOPE}"
+
+# Optional but recommended: enable read access to the hub subscription
+az role assignment create \
+  --assignee "${SP_NAME}" \
+  --role "Reader" \
+  --scope "/subscriptions/${HUB_SUBSCRIPTION}"
+
+# Optional: grant access to a remote state storage account/container
+az role assignment create \
+  --assignee "${SP_NAME}" \
+  --role "Storage Blob Data Contributor" \
+  --scope "${STATE_SCOPE}"
+
+# Export the captured credentials so Terraform can authenticate
+export ARM_CLIENT_ID="<appId>"
+export ARM_CLIENT_SECRET="<password>"
+export ARM_TENANT_ID="<tenant>"
+export ARM_SUBSCRIPTION_ID="${SPOKE_SUBSCRIPTION}"
+export ARM_AUXILIARY_TENANT_IDS="<hub-tenant-guid>"
+
+# -----------------------------------------------------------------------------
 # 1. Navigate to your environment folder
-# ----------------------------------------------------
-cd C:\Users\Vedant Patel\Desktop\terraform_infra\envs\dev
+# -----------------------------------------------------------------------------
+cd /path/to/terraform_infra/envs/dev
 
-
-# ----------------------------------------------------
+# -----------------------------------------------------------------------------
 # 2. Initialize Terraform
 # (Downloads provider plugins, configures backend in Azure Storage)
 # With backend values in envs/dev/backend.tf you can run init directly.
-# ----------------------------------------------------
+# -----------------------------------------------------------------------------
 terraform init
 
-
-# ----------------------------------------------------
+# -----------------------------------------------------------------------------
 # 3. Validate configuration
 # (Quick syntax + structural check of your .tf files)
-# ----------------------------------------------------
+# -----------------------------------------------------------------------------
 terraform validate
 
-
-# ----------------------------------------------------
+# -----------------------------------------------------------------------------
 # 4. Preview changes
 # (Shows what Terraform will CREATE/UPDATE/DESTROY in Azure)
 # The -out=tfplan flag saves the plan to a file for consistent apply
-# ----------------------------------------------------
+# -----------------------------------------------------------------------------
 terraform plan -out=tfplan
 
-
-# ----------------------------------------------------
+# -----------------------------------------------------------------------------
 # 5. Apply changes
 # (Executes the saved plan and provisions resources in Azure)
 # Always use the saved plan so you know exactly what’s applied
-# ----------------------------------------------------
+# -----------------------------------------------------------------------------
 terraform apply "tfplan"
 
-
-# ----------------------------------------------------
+# -----------------------------------------------------------------------------
 # 6. Check outputs (optional)
 # (Shows any outputs defined in your main.tf for quick reference)
-# ----------------------------------------------------
+# -----------------------------------------------------------------------------
 terraform output
 
-
-# ----------------------------------------------------
+# -----------------------------------------------------------------------------
 # 7. Update infrastructure later
 # (Repeat plan+apply after editing variables.tfvars or modules)
-# ----------------------------------------------------
+# -----------------------------------------------------------------------------
 terraform plan -out=tfplan
 terraform apply "tfplan"
 
-
-# ----------------------------------------------------
+# -----------------------------------------------------------------------------
 # 8. Destroy resources
 # (Removes everything defined in this environment’s state file)
 # Use with caution! This will delete all managed Azure resources.
-# ----------------------------------------------------
+# -----------------------------------------------------------------------------
 terraform destroy -auto-approve
