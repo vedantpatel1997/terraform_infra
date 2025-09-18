@@ -19,6 +19,9 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
+# Backend override configuration
+backend-config.hcl
+
 # CLI configuration
 .terraformrc
 terraform.rc

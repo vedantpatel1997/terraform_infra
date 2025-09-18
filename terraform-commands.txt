@@ -1,4 +1,30 @@
 # ----------------------------------------------------
+# 0. (One-time) Ensure the remote state container exists
+# ----------------------------------------------------
+# Authenticate with Azure using Azure AD (CLI or Service Principal) before
+# provisioning the backend container or running Terraform commands.
+# az login --tenant 6a3bb170-5159-4bff-860b-aa74fb762697
+# az account set --subscription 6a3bb170-5159-4bff-860b-aa74fb762697
+#
+# Create the storage container if it does not already exist. Account keys are
+# disabled on the storage account so use Azure AD auth via the CLI.
+# az storage container create \
+#   --account-name storageaccountvp \
+#   --name tfstate \
+#   --auth-mode login \
+#   --public-access off
+#
+# Ensure the user or service principal that will run Terraform has a role with
+# data plane access to the container (for example, Storage Blob Data
+# Contributor). Replace <principal-id> with the object ID of your identity.
+# az role assignment create \
+#   --assignee-object-id <principal-id> \
+#   --assignee-principal-type User \
+#   --role "Storage Blob Data Contributor" \
+#   --scope "/subscriptions/6a3bb170-5159-4bff-860b-aa74fb762697/resourceGroups/Wordpress-PHP/providers/Microsoft.Storage/storageAccounts/storageaccountvp"
+# ----------------------------------------------------
+
+# ----------------------------------------------------
 # 1. Navigate to your environment folder
 # ----------------------------------------------------
 cd C:\Users\Vedant Patel\Desktop\terraform_infra\envs\dev
@@ -6,8 +32,8 @@ cd C:\Users\Vedant Patel\Desktop\terraform_infra\envs\dev
 
 # ----------------------------------------------------
 # 2. Initialize Terraform
-# (Downloads provider plugins, sets up backend in Azure Storage)
-# Run only once per project OR after provider/backend changes
+# (Downloads provider plugins, configures backend in Azure Storage)
+# With backend values in envs/dev/backend.tf you can run init directly.
 # ----------------------------------------------------
 terraform init
 
