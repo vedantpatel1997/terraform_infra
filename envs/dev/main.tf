@@ -107,13 +107,6 @@ data "azurerm_virtual_network" "hub" {
   provider = azurerm.hub
 }
 
-data "azurerm_role_definition" "network_contributor" {
-  name  = "Network Contributor"
-  scope = data.azurerm_virtual_network.hub.id
-
-  provider = azurerm.hub
-}
-
 data "azapi_resource" "hub_private_dns_inbound_endpoint" {
   count = var.hub_private_dns_resolver_name != null && var.hub_private_dns_resolver_inbound_endpoint_name != null ? 1 : 0
 
@@ -195,16 +188,6 @@ resource "azurerm_virtual_network_peering" "hub_to_spoke" {
 }
 
 
-resource "azurerm_role_assignment" "hub_vnet_access_for_spoke_sp" {
-  scope              = data.azurerm_virtual_network.hub.id
-  role_definition_id = data.azurerm_role_definition.network_contributor.id
-  principal_id       = var.spoke_client_object_id
-  principal_type     = "ServicePrincipal"
-
-  provider = azurerm.hub
-}
-
-
 module "dns" {
   source    = "../../modules/private-dns"
   rg_name   = local.resource_names.rg_dns
@@ -213,10 +196,6 @@ module "dns" {
   vnet_name = local.resource_names.vnet
   linked_vnet_ids = [data.azurerm_virtual_network.hub.id]
   tags      = local.tags
-
-  depends_on = [
-    azurerm_role_assignment.hub_vnet_access_for_spoke_sp,
-  ]
 }
 
 module "acr" {
