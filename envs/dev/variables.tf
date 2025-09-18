@@ -6,6 +6,74 @@ variable "tenant_id" {
   type = string
 }
 
+variable "spoke_client_id" {
+  type = string
+}
+
+variable "spoke_client_secret" {
+  type      = string
+  sensitive = true
+}
+
+variable "spoke_client_object_id" {
+  type = string
+}
+
+variable "hub_subscription_id" {
+  type = string
+}
+
+variable "hub_tenant_id" {
+  type = string
+}
+
+variable "hub_client_id" {
+  type = string
+}
+
+variable "hub_client_secret" {
+  type      = string
+  sensitive = true
+}
+
+variable "hub_resource_group_name" {
+  type = string
+}
+
+variable "hub_vnet_name" {
+  type = string
+}
+
+variable "spoke_to_hub_peering_name" {
+  type    = string
+  default = "spoke-to-hub"
+}
+
+variable "hub_to_spoke_peering_name" {
+  type    = string
+  default = "hub-to-spoke"
+}
+
+variable "hub_private_dns_resolver_name" {
+  type    = string
+  default = null
+}
+
+variable "hub_private_dns_resolver_inbound_endpoint_name" {
+  type    = string
+  default = null
+}
+
+variable "hub_private_dns_resolver_static_ips" {
+  type    = list(string)
+  default = []
+}
+
+variable "hub_private_dns_resolver_fallback_ip" {
+  type    = string
+  default = "11.0.1.68"
+}
+
 variable "location" {
   type = string
 }

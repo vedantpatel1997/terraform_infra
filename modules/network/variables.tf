@@ -18,6 +18,12 @@ variable "vnet_address_space" {
   description = "Address space for the virtual network."
 }
 
+variable "dns_servers" {
+  type        = list(string)
+  description = "Custom DNS servers to assign to the virtual network."
+  default     = []
+}
+
 variable "env" {
   type        = string
   description = "Environment code used for network-scoped resources."

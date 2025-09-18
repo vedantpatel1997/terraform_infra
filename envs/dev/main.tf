@@ -100,12 +100,60 @@ locals {
   )
 }
 
+data "azurerm_virtual_network" "hub" {
+  name                = var.hub_vnet_name
+  resource_group_name = var.hub_resource_group_name
+
+  provider = azurerm.hub
+}
+
+data "azurerm_role_definition" "network_contributor" {
+  name  = "Network Contributor"
+  scope = data.azurerm_virtual_network.hub.id
+
+  provider = azurerm.hub
+}
+
+data "azapi_resource" "hub_private_dns_inbound_endpoint" {
+  count = var.hub_private_dns_resolver_name != null && var.hub_private_dns_resolver_inbound_endpoint_name != null ? 1 : 0
+
+  type      = "Microsoft.Network/dnsResolvers/inboundEndpoints@2023-07-01"
+  name      = var.hub_private_dns_resolver_inbound_endpoint_name
+  parent_id = format(
+    "/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/dnsResolvers/%s",
+    var.hub_subscription_id,
+    var.hub_resource_group_name,
+    var.hub_private_dns_resolver_name,
+  )
+
+  provider = azapi.hub
+}
+
+locals {
+  hub_dns_inbound_ip_configurations = length(data.azapi_resource.hub_private_dns_inbound_endpoint) > 0 ? try(
+    jsondecode(data.azapi_resource.hub_private_dns_inbound_endpoint[0].output).properties.ipConfigurations,
+    [],
+  ) : []
+
+  hub_dns_inbound_ips_dynamic = [
+    for config in local.hub_dns_inbound_ip_configurations : config.privateIpAddress
+    if try(config.privateIpAddress, null) != null
+  ]
+
+  hub_dns_servers = coalescelist(
+    local.hub_dns_inbound_ips_dynamic,
+    var.hub_private_dns_resolver_static_ips,
+    [var.hub_private_dns_resolver_fallback_ip],
+  )
+}
+
 module "network" {
   source             = "../../modules/network"
   rg_name            = local.resource_names.rg_network
   location           = var.location
   vnet_name          = local.resource_names.vnet
   vnet_address_space = [var.vnet_cidr]
+  dns_servers        = local.hub_dns_servers
   env                = module.naming.tokens.environment
   appsvc_subnet = {
     name   = local.resource_names.snet_appsvc
@@ -118,13 +166,57 @@ module "network" {
   tags = local.tags
 }
 
+resource "azurerm_virtual_network_peering" "spoke_to_hub" {
+  name                      = var.spoke_to_hub_peering_name
+  resource_group_name       = local.resource_names.rg_network
+  virtual_network_name      = local.resource_names.vnet
+  remote_virtual_network_id = data.azurerm_virtual_network.hub.id
+
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+  use_remote_gateways          = true
+
+  depends_on = [module.network]
+}
+
+resource "azurerm_virtual_network_peering" "hub_to_spoke" {
+  name                      = var.hub_to_spoke_peering_name
+  resource_group_name       = var.hub_resource_group_name
+  virtual_network_name      = data.azurerm_virtual_network.hub.name
+  remote_virtual_network_id = module.network.vnet_id
+
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+  allow_gateway_transit        = true
+
+  provider = azurerm.hub
+
+  depends_on = [module.network]
+}
+
+
+resource "azurerm_role_assignment" "hub_vnet_access_for_spoke_sp" {
+  scope              = data.azurerm_virtual_network.hub.id
+  role_definition_id = data.azurerm_role_definition.network_contributor.id
+  principal_id       = var.spoke_client_object_id
+  principal_type     = "ServicePrincipal"
+
+  provider = azurerm.hub
+}
+
+
 module "dns" {
   source    = "../../modules/private-dns"
   rg_name   = local.resource_names.rg_dns
   location  = var.location
   vnet_id   = module.network.vnet_id
   vnet_name = local.resource_names.vnet
+  linked_vnet_ids = [data.azurerm_virtual_network.hub.id]
   tags      = local.tags
+
+  depends_on = [
+    azurerm_role_assignment.hub_vnet_access_for_spoke_sp,
+  ]
 }
 
 module "acr" {
