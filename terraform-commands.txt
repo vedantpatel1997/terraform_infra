@@ -25,6 +25,14 @@
 # ----------------------------------------------------
 
 # ----------------------------------------------------
+# 0a. (Per shell session) Export service principal credentials
+# ----------------------------------------------------
+# Copy envs/dev/set-sp-credentials.example.ps1 to set-sp-credentials.ps1,
+# update it with the multi-tenant app registration values, then run:
+# .\set-sp-credentials.ps1
+# This wires the azurerm backend and providers to the same credentials.
+
+# ----------------------------------------------------
 # 1. Navigate to your environment folder
 # ----------------------------------------------------
 cd C:\Users\Vedant Patel\Desktop\terraform_infra\envs\dev
@@ -33,9 +41,12 @@ cd C:\Users\Vedant Patel\Desktop\terraform_infra\envs\dev
 # ----------------------------------------------------
 # 2. Initialize Terraform
 # (Downloads provider plugins, configures backend in Azure Storage)
-# With backend values in envs/dev/backend.tf you can run init directly.
+# If you need to override backend defaults, copy backend-config.example.hcl
+# to backend-config.hcl, update the values, and pass it to terraform init.
 # ----------------------------------------------------
 terraform init
+# or
+# terraform init -backend-config=backend-config.hcl
 
 
 # ----------------------------------------------------
