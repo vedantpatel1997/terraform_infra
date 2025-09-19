@@ -3,11 +3,6 @@ variable "org_code" {
   description = "Organisation code used for resource naming."
 }
 
-variable "project_code" {
-  type        = string
-  description = "Project code used for resource naming."
-}
-
 variable "environment" {
   type        = string
   description = "Environment identifier (for example, dev)."

@@ -3,11 +3,6 @@ variable "org_code" {
   description = "Organisation code used for resource naming."
 }
 
-variable "project_code" {
-  type        = string
-  description = "Project code used for resource naming."
-}
-
 variable "environment" {
   type        = string
   description = "Environment identifier (for example, common)."
@@ -26,6 +21,27 @@ variable "vnet_address_space" {
 variable "private_endpoint_subnet_prefix" {
   type        = string
   description = "CIDR prefix for private endpoints hosted in the common VNet."
+}
+
+variable "subscription_id" {
+  type        = string
+  description = "Subscription ID hosting the shared core resources."
+}
+
+variable "tenant_id" {
+  type        = string
+  description = "Tenant ID hosting the shared core subscription."
+}
+
+variable "client_id" {
+  type        = string
+  description = "Service principal client ID used for Azure authentication."
+}
+
+variable "client_secret" {
+  type        = string
+  description = "Service principal client secret used for Azure authentication."
+  sensitive   = true
 }
 
 variable "naming_overrides" {

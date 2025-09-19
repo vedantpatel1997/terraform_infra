@@ -15,25 +15,98 @@ locals {
   }
 
   naming_definitions = merge(local.default_naming_definitions, var.naming_overrides)
-}
 
-module "naming" {
-  source               = "../../terraform-modules/naming"
-  org_code             = var.org_code
-  project_code         = var.project_code
-  environment          = var.environment
-  location             = var.location
-  resource_definitions = local.naming_definitions
-}
+  raw_tokens = {
+    org         = var.org_code
+    component   = "infra core"
+    environment = var.environment
+    location    = var.location
+  }
 
-locals {
-  tags = merge({
-    environment = module.naming.tokens.environment,
-    location    = module.naming.tokens.location,
-    workload    = module.naming.tokens.project,
-  }, var.tags)
+  sanitized_tokens = {
+    for key, value in local.raw_tokens :
+    key => trim(
+      regexreplace(
+        regexreplace(
+          replace(lower(trimspace(value)), "_", "-"),
+          "[^a-z0-9-]",
+          "-",
+        ),
+        "-{2,}",
+        "-",
+      ),
+      "-",
+    )
+  }
 
-  resource_names = module.naming.names
+  default_max_length = {
+    generic        = 80
+    resource_group = 90
+    storage        = 24
+    acr            = 50
+    key_vault      = 24
+  }
+
+  sanitized_resource_definitions = {
+    for key, definition in local.naming_definitions :
+    key => {
+      purpose = trim(
+        regexreplace(
+          regexreplace(
+            replace(lower(trimspace(definition.purpose)), "_", "-"),
+            "[^a-z0-9-]",
+            "-",
+          ),
+          "-{2,}",
+          "-",
+        ),
+        "-",
+      )
+      resource_type = coalesce(lookup(definition, "resource_type", null), "generic")
+      max_length = coalesce(
+        lookup(definition, "max_length", null),
+        lookup(local.default_max_length, coalesce(lookup(definition, "resource_type", null), "generic"), 80),
+      )
+    }
+  }
+
+  resource_tokens = {
+    for key, definition in local.sanitized_resource_definitions :
+    key => compact([
+      local.sanitized_tokens.org,
+      local.sanitized_tokens.component,
+      definition.purpose,
+      local.sanitized_tokens.environment,
+      local.sanitized_tokens.location,
+    ])
+  }
+
+  joiner_overrides = {
+    storage = ""
+    acr     = ""
+  }
+
+  resource_joined_names = {
+    for key, definition in local.sanitized_resource_definitions :
+    key => join(lookup(local.joiner_overrides, definition.resource_type, "-"), local.resource_tokens[key])
+  }
+
+  resource_names = {
+    for key, definition in local.sanitized_resource_definitions :
+    key => substr(
+      local.resource_joined_names[key],
+      0,
+      min(length(local.resource_joined_names[key]), definition.max_length),
+    )
+  }
+
+  base_tags = {
+    environment = local.sanitized_tokens.environment
+    location    = local.sanitized_tokens.location
+    workload    = local.sanitized_tokens.component
+  }
+
+  tags = merge(local.base_tags, var.tags)
 }
 
 resource "azurerm_resource_group" "network" {

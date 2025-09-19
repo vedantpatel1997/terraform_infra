@@ -3,11 +3,6 @@ variable "org_code" {
   description = "Organisation code used for resource naming."
 }
 
-variable "project_code" {
-  type        = string
-  description = "Project code used for resource naming."
-}
-
 variable "environment" {
   type        = string
   description = "Environment identifier (for example, dev)."
@@ -33,9 +28,35 @@ variable "private_endpoint_subnet_prefix" {
   description = "CIDR prefix for private endpoints in the spoke."
 }
 
+variable "client_id" {
+  type        = string
+  description = "Service principal client ID used for Azure authentication."
+}
+
+variable "client_secret" {
+  type        = string
+  description = "Service principal client secret used for Azure authentication."
+  sensitive   = true
+}
+
+variable "spoke_tenant_id" {
+  type        = string
+  description = "Tenant ID hosting the spoke subscription."
+}
+
+variable "spoke_subscription_id" {
+  type        = string
+  description = "Subscription ID hosting the prod spoke resources."
+}
+
 variable "hub_subscription_id" {
   type        = string
   description = "Subscription ID hosting the hub virtual network."
+}
+
+variable "hub_tenant_id" {
+  type        = string
+  description = "Tenant ID hosting the hub subscription."
 }
 
 variable "hub_resource_group_name" {
@@ -48,10 +69,14 @@ variable "hub_vnet_name" {
   description = "Name of the hub virtual network."
 }
 
-variable "hub_dns_servers" {
-  type        = list(string)
-  description = "Optional list of DNS servers inherited from the hub."
-  default     = []
+variable "hub_private_dns_resolver_name" {
+  type        = string
+  description = "Name of the Private DNS resolver hosting inbound endpoints for the hub."
+}
+
+variable "hub_private_dns_inbound_endpoint_name" {
+  type        = string
+  description = "Name of the Private DNS resolver inbound endpoint to use for spoke DNS servers."
 }
 
 variable "naming_overrides" {
