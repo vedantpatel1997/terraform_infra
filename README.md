@@ -1,140 +1,92 @@
-# Hub-and-Spoke Network Peering with Private DNS Forwarding
+# Terraform Hub-and-Spoke Reference with Shared Services and UAMIs
 
 ## Overview
-This repository contains a reusable Terraform implementation of a spoke environment that plugs into an existing hub subscription. Running the configuration builds:
+This repository implements a reusable hub-and-spoke topology for Azure workloads.  It mirrors the reference architecture described
+in the "Terraform Architecture & Management Guide" and is split into three logical layers:
 
-- A spoke virtual network with subnets for App Service integration and private endpoints
-- Bidirectional VNet peering to an existing hub virtual network with gateway transit enabled
-- Private DNS zones that link back to the hub to centralise name resolution
-- Azure Container Registry, App Service plan, user-assigned identity, and two container-based web apps
+* **infra-core** – builds the spoke virtual networks for dev/prod and the common services network, including hub peerings.
+* **infra-shared** – provisions shared services (ACR, Service Bus, Storage, Key Vault, SQL) inside the common VNet and hosts
+  private DNS zones.  It also creates environment-specific user-assigned managed identities (UAMIs) with scoped RBAC.
+* **infra-apps** – deploys application runtimes (example App Services) per environment and binds them to the shared UAMIs while
+  consuming outputs published by `infra-shared` and `infra-core`.
 
-The goal is to allow any team to deploy an application stack that inherits shared networking services (VPN gateway, Private DNS resolver) provided in the hub subscription.
+Reusable building blocks live under `terraform-modules/` and expose composable modules for VNets, private DNS, shared services,
+managed identities, private endpoints, and App Service resources.
 
 ## Repository Layout
-The repo is split into composable Terraform modules and environment-specific entry points:
 
 | Path | Purpose |
 |------|---------|
-| `envs/dev/` | Example environment. Contains the root Terraform configuration (`main.tf`), provider declarations (`versions.tf`), and environment defaults (`terraform.tfvars`). Copy this folder when creating a new environment. |
-| `modules/naming` | Generates consistent resource names based on organisation, project, environment, and location tokens. |
-| `modules/network` | Creates the spoke virtual network, subnets, and associated resource group. |
-| `modules/private-dns` | Creates Private DNS zones and links them to the spoke and hub VNets. |
-| `modules/acr` | Provisions Azure Container Registry with private endpoint integration. |
-| `modules/appservice/*` | Contains submodules for the App Service plan and web apps. |
+| `infra-core/common` | Creates the common VNet that hosts private endpoints and shared DNS zones. |
+| `infra-core/dev` / `infra-core/prod` | Create environment-specific spoke VNets, subnets, and hub peerings. |
+| `infra-shared/common` | Deploys shared services in the common VNet, configures private endpoints/DNS, and provisions the dev/prod UAMIs. |
+| `infra-apps/dev` / `infra-apps/prod` | Deploy example App Service workloads that attach to the shared registry, DNS, and UAMIs. |
+| `terraform-modules/` | Versioned modules reused across layers (naming, vnet, private DNS, ACR, Key Vault, SQL, Service Bus, storage, UAMI, private endpoint, App Service, etc.). |
+| `terraform-commands.txt` | Convenience commands for Terraform workflows. |
 
-When modifying or extending the infrastructure, update `envs/<environment>/main.tf` to wire additional modules, adjust or override variables in `variables.tf` and `terraform.tfvars`, and add new reusable building blocks under `modules/` as needed.
+Each folder under `infra-*` is a standalone Terraform state.  Configure its backend independently (for example via `backend.tf` or
+CLI flags) so that dev/prod/common states remain isolated as described in the architecture guide.
+
+## Deployment Workflow
+
+1. **Core networking (`infra-core`)**
+   * Deploy `infra-core/common` to create the shared VNet and private-endpoint subnet.
+   * Deploy `infra-core/dev` and `infra-core/prod` to create the spoke VNets and peer them with the hub VNet.  Provide the hub
+     subscription/resource-group/VNet names and optional DNS server IPs if you use a Private DNS resolver in the hub.
+2. **Shared services (`infra-shared/common`)**
+   * Pass the common VNet ID and private-endpoint subnet ID from the previous step.
+   * Supply the SQL administrator credentials (values should come from a secure secret store) and the tenant ID for Key Vault.
+   * The module outputs registry IDs, SQL/database IDs, Service Bus namespace information, storage/Key Vault identifiers, DNS zone
+     IDs, and the dev/prod UAMI properties.
+3. **Application layers (`infra-apps/dev` and `/prod`)**
+   * Consume outputs from `infra-core` and `infra-shared` (for example via `terraform_remote_state`).
+   * Provide container image metadata per environment.  The sample configuration deploys frontend/backend Web Apps that use
+     the shared UAMI to authenticate against ACR, Key Vault, Service Bus, Storage, and SQL.
+
+## Remote State
+Store Terraform state in an Azure Storage account with soft-delete/versioning enabled.  A common pattern is to create a `tfstate`
+container and configure each layer to use a dedicated blob path, e.g. `core/dev.tfstate`, `shared/common.tfstate`, `apps/dev.tfstate`, etc.
+Refer to the architecture guide for detailed recommendations on state isolation, locking, and automation pipelines.
 
 ## Prerequisites
-- Terraform CLI `>= 1.7.0`
-- Azure CLI `>= 2.50` (used for authentication and role assignments)
-- Access to both the spoke and hub Azure subscriptions
-- Permission to create Azure AD service principals
 
-## Authentication & Service Principal Requirements
-Terraform authenticates with explicit client credentials supplied through variables (`client_id`, `client_secret`, `tenant_id`, and `subscription_id`). The same identity is re-used with provider aliases to operate in the hub subscription.
+* Terraform CLI `>= 1.7.0`
+* Azure CLI `>= 2.50.0`
+* Permissions to deploy resources in the spoke subscription(s) and read/peer with the hub subscription
+* Credentials to create the SQL administrator account and assign RBAC roles for UAMIs
 
-### 1. Create (or reuse) a service principal for automation
-Run once per environment or workload. Replace placeholder values with your own identifiers.
-
-```bash
-# Log in with an identity that can create service principals
-az login
-
-# Define variables for readability
-SPOKE_SUBSCRIPTION="<spoke-subscription-guid>"
-HUB_SUBSCRIPTION="<hub-subscription-guid>"
-HUB_VNET_SCOPE="/subscriptions/${HUB_SUBSCRIPTION}/resourceGroups/<hub-rg>/providers/Microsoft.Network/virtualNetworks/<hub-vnet-name>"
-STATE_SCOPE="/subscriptions/${SPOKE_SUBSCRIPTION}/resourceGroups/<state-rg>/providers/Microsoft.Storage/storageAccounts/<state-storage-account>"
-SP_NAME="sp-terraform-hub-spoke"
-
-# Create the service principal with Contributor on the spoke subscription
-az ad sp create-for-rbac \
-  --name "${SP_NAME}" \
-  --role Contributor \
-  --scopes "/subscriptions/${SPOKE_SUBSCRIPTION}"
-```
-
-Record the `appId`, `password`, and `tenant` values from the output. They correspond to `client_id`, `client_secret`, and `tenant_id` in Terraform.
-
-### 2. Grant required roles on shared resources
-The same service principal needs additional rights to interact with hub networking components and (optionally) the remote state storage account.
-
-```bash
-# Allow the service principal to manage peering on the hub VNet
-az role assignment create \
-  --assignee "${SP_NAME}" \
-  --role "Network Contributor" \
-  --scope "${HUB_VNET_SCOPE}"
-
-# Permit reading VNet information (included in Network Contributor),
-# and linking Private DNS zones during deployment
-az role assignment create \
-  --assignee "${SP_NAME}" \
-  --role "Reader" \
-  --scope "/subscriptions/${HUB_SUBSCRIPTION}"
-
-# Optional: enable Terraform to read/write state in an Azure Storage container
-az role assignment create \
-  --assignee "${SP_NAME}" \
-  --role "Storage Blob Data Contributor" \
-  --scope "${STATE_SCOPE}"
-```
-
-> **Summary of required permissions**
->
-> - **Spoke subscription:** `Contributor` (allows resource group, network, DNS, and App Service provisioning)
-> - **Hub virtual network scope:** `Network Contributor` (allows creation of the hub-to-spoke peering and DNS links)
-> - **Hub subscription (optional but recommended):** `Reader` (allows discovery of hub assets through data sources)
-> - **Remote state storage (if used):** `Storage Blob Data Contributor`
-
-### 3. Configure Terraform authentication
-Provide the captured credentials to Terraform through a `.tfvars` file or environment variables:
-
-```bash
-export ARM_CLIENT_ID="<appId>"
-export ARM_CLIENT_SECRET="<password>"
-export ARM_TENANT_ID="<tenant>"
-export ARM_SUBSCRIPTION_ID="${SPOKE_SUBSCRIPTION}"
-
-# Auxiliary tenant IDs allow the provider aliases to request tokens for the hub tenant
-export ARM_AUXILIARY_TENANT_IDS="<hub-tenant-guid>"
-```
-
-Alternatively, populate `client_id`, `client_secret`, `tenant_id`, `subscription_id`, `hub_subscription_id`, and `hub_tenant_id` directly in `terraform.tfvars`. Avoid committing secrets to version control—use a local `.auto.tfvars` file or environment variables with `terraform apply -var "client_secret=$ARM_CLIENT_SECRET"`.
-
-## Working with Environments
-Each environment folder under `envs/` acts as an independent Terraform state. To create a new environment:
-
-1. Copy `envs/dev` to `envs/<new-env>`.
-2. Update `terraform.tfvars` with the new subscription IDs, tenant IDs, naming tokens, CIDR ranges, and container image details.
-3. Review `variables.tf` for any new variables you might need. Add them to the module interfaces if new functionality is introduced.
-4. Modify `main.tf` to add or remove modules/resources for the workload. For example, add a new module block to provision additional private endpoints, or adjust `module "network"` settings to change subnet ranges.
+Authenticate with Azure via `az login` or by exporting the standard `ARM_*` environment variables before running Terraform.
 
 ## Running Terraform
-The `terraform-commands.txt` file contains an expanded, copy-paste friendly command list. The high-level workflow is:
 
-1. Navigate to the environment folder: `cd envs/dev`
-2. (Optional) configure remote state via `backend-config.hcl`
-3. Initialise providers and modules: `terraform init`
-4. Validate syntax: `terraform validate`
-5. Plan changes: `terraform plan -out=tfplan`
-6. Apply the saved plan: `terraform apply tfplan`
-7. Inspect outputs: `terraform output`
-8. Destroy (when needed): `terraform destroy -auto-approve`
+Each environment folder is independent.  Example workflow for the dev application stack:
 
-## Modifying or Extending the Infrastructure
-When new requirements appear:
+```bash
+cd infra-core/dev
+terraform init
+terraform plan -out=tfplan
+terraform apply tfplan
 
-- **Add a new Azure resource type:** create a module under `modules/` encapsulating that resource, expose variables for customisation, then call the module from `envs/<environment>/main.tf`.
-- **Change naming conventions:** update `modules/naming` or provide overrides via the `naming_overrides` variable.
-- **Alter networking:** adjust `module "network"` inputs (for example, CIDR ranges) and confirm any dependencies in downstream modules.
-- **Adjust application container settings:** change the image repositories, tags, and port numbers in `terraform.tfvars` or promote them to variables if they vary per environment.
+cd ../../infra-shared/common
+terraform init
+terraform plan -out=tfplan
+terraform apply tfplan
 
-Keeping changes modular makes it easier for reviewers and future engineers to understand the blast radius. Whenever you add variables, document them in the README or inline comments, and update `terraform.tfvars` examples so other teams know how to configure new functionality.
+cd ../../infra-apps/dev
+terraform init
+terraform plan -out=tfplan
+terraform apply tfplan
+```
 
-## Troubleshooting
-- **Authentication failures:** verify the service principal credentials and role assignments. Use `az account get-access-token --resource https://management.azure.com/ --query expiresOn` to ensure the identity can obtain tokens for both tenants.
-- **Peering errors:** confirm the hub virtual network scope in the `Network Contributor` role assignment matches the exact hub VNet ID.
-- **Private DNS linking issues:** ensure the hub subscription/tenant IDs are correctly set and that the identity has rights to join VNets across tenants.
+Repeat for `prod` where appropriate.  Pipelines should run `terraform fmt`, `terraform validate`, and `terraform plan` on pull
+requests, promote plans for approval, and run nightly drift detection using `terraform plan -detailed-exitcode`.
 
-With these practices, onboarding engineers can confidently understand the deployment topology, authenticate Terraform correctly, and know where to make modifications when introducing new resources.
+## Extending the Modules
+
+* Add new shared services by creating a module under `terraform-modules/` and wiring it into `infra-shared/common`.
+* Extend the VNet module to include NSGs/route tables if additional segmentation is required.
+* Introduce new application runtimes (AKS, Container Apps, Functions) under `infra-apps/` by reusing the provided modules and
+  attaching the appropriate environment-specific UAMI.
+
+Keep RBAC assignments, network policies, and naming standards codified in Terraform so that dev/prod remain isolated while sharing
+central services through the common VNet.
