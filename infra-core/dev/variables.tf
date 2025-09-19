@@ -23,6 +23,27 @@ variable "vnet_address_space" {
   description = "Address space allocated to the spoke virtual network."
 }
 
+variable "client_id" {
+  type        = string
+  description = "Service principal client ID used for Azure authentication."
+}
+
+variable "client_secret" {
+  type        = string
+  description = "Service principal client secret used for Azure authentication."
+  sensitive   = true
+}
+
+variable "spoke_tenant_id" {
+  type        = string
+  description = "Tenant ID hosting the spoke subscription."
+}
+
+variable "spoke_subscription_id" {
+  type        = string
+  description = "Subscription ID hosting the dev spoke resources."
+}
+
 variable "app_subnet_prefix" {
   type        = string
   description = "CIDR prefix for application workloads (App Service / Container Apps)."
@@ -38,6 +59,11 @@ variable "hub_subscription_id" {
   description = "Subscription ID hosting the hub virtual network."
 }
 
+variable "hub_tenant_id" {
+  type        = string
+  description = "Tenant ID hosting the hub subscription."
+}
+
 variable "hub_resource_group_name" {
   type        = string
   description = "Resource group containing the hub virtual network."
@@ -48,10 +74,14 @@ variable "hub_vnet_name" {
   description = "Name of the hub virtual network."
 }
 
-variable "hub_dns_servers" {
-  type        = list(string)
-  description = "Optional list of DNS servers inherited from the hub."
-  default     = []
+variable "hub_private_dns_resolver_name" {
+  type        = string
+  description = "Name of the Private DNS resolver hosting inbound endpoints for the hub."
+}
+
+variable "hub_private_dns_inbound_endpoint_name" {
+  type        = string
+  description = "Name of the Private DNS resolver inbound endpoint to use for spoke DNS servers."
 }
 
 variable "naming_overrides" {
