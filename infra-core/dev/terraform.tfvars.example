@@ -1,5 +1,4 @@
 org_code              = "contoso"
-project_code          = "app"
 environment           = "dev"
 location              = "australiaeast"
 vnet_address_space    = ["10.10.0.0/16"]
