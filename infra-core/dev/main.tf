@@ -56,8 +56,11 @@ module "spoke_vnet" {
   location            = var.location
   resource_group_name = azurerm_resource_group.network.name
   address_space       = var.vnet_address_space
-  dns_servers         = var.hub_dns_servers
-  tags                = local.tags
+  dns_servers = [
+    for config in data.azurerm_private_dns_resolver_inbound_endpoint.hub.ip_configurations :
+    config.private_ip_address
+  ]
+  tags = local.tags
   subnets = {
     (local.resource_names.snet_app) = {
       address_prefixes = [var.app_subnet_prefix]
@@ -81,6 +84,20 @@ module "spoke_vnet" {
 data "azurerm_virtual_network" "hub" {
   name                = var.hub_vnet_name
   resource_group_name = var.hub_resource_group_name
+
+  provider = azurerm.hub
+}
+
+data "azurerm_private_dns_resolver" "hub" {
+  name                = var.hub_private_dns_resolver_name
+  resource_group_name = var.hub_resource_group_name
+
+  provider = azurerm.hub
+}
+
+data "azurerm_private_dns_resolver_inbound_endpoint" "hub" {
+  name                    = var.hub_private_dns_inbound_endpoint_name
+  private_dns_resolver_id = data.azurerm_private_dns_resolver.hub.id
 
   provider = azurerm.hub
 }
