@@ -1,0 +1,164 @@
+==============================================================
+Part A — Spoke Script (create SP, Owner role, multi-tenant)
+==============================================================
+
+#!/usr/bin/env bash
+set -euo pipefail
+
+### ================= SPOKE INPUTS (EDIT) =================
+SPOKE_SUB_ID="<your-spoke-subscription-id>"
+SPOKE_TENANT_ID="<your-spoke-tenant-id>"
+SP_NAME="spn-terraform-cross-tenant"
+REDIRECT_URI="https://www.microsoft.com"
+
+### ================= SET CONTEXT =================
+echo ">> Setting subscription context to SPOKE subscription..."
+az account set --subscription "$SPOKE_SUB_ID"
+
+CUR_TENANT=$(az account show --query tenantId -o tsv)
+if [[ "$CUR_TENANT" != "$SPOKE_TENANT_ID" ]]; then
+  echo "ERROR: Current tenant is $CUR_TENANT but expected $SPOKE_TENANT_ID"
+  exit 1
+fi
+
+### ================= CREATE SERVICE PRINCIPAL =================
+echo ">> Creating service principal with Owner role on SPOKE subscription..."
+SP_JSON=$(az ad sp create-for-rbac \
+  --name "$SP_NAME" \
+  --role "Owner" \
+  --scopes "/subscriptions/${SPOKE_SUB_ID}" \
+  --years 2 -o json)
+
+APP_ID=$(echo "$SP_JSON" | jq -r '.appId')
+echo "APP_ID=$APP_ID"
+echo ">> Save the secret/password securely (not printed here)."
+
+### ================= MAKE APP MULTI-TENANT =================
+echo ">> Making app multi-tenant..."
+az ad app update \
+  --id "$APP_ID" \
+  --sign-in-audience AzureADMultipleOrgs \
+  --web-redirect-uris "$REDIRECT_URI"
+
+### ================= ADD GRAPH PERMISSION (User.Read) =================
+MS_GRAPH_APP_ID="00000003-0000-0000-c000-000000000000"
+USER_READ_SCOPE="e1fe6dd8-ba31-4d61-89e7-88639da4683d"
+
+az ad app permission add \
+  --id "$APP_ID" \
+  --api "$MS_GRAPH_APP_ID" \
+  --api-permissions "${USER_READ_SCOPE}=Scope"
+
+az ad app permission grant \
+  --id "$APP_ID" \
+  --api "$MS_GRAPH_APP_ID" \
+  --scope "User.Read"
+
+### ================= OUTPUT =================
+echo ""
+echo "======================================================="
+echo " SPOKE SETUP COMPLETE"
+echo "  - Service Principal: $SP_NAME"
+echo "  - AppId: $APP_ID"
+echo "  - Tenant: $SPOKE_TENANT_ID"
+echo ""
+echo "Next: Provide the APP_ID to HUB team for role assignment + consent."
+echo "======================================================="
+
+
+
+==============================================================
+Part B — Hub Script (assign roles to SP)
+==============================================================
+
+#!/usr/bin/env bash
+set -euo pipefail
+
+### ================= HUB INPUTS (EDIT) =================
+HUB_SUB_ID="<hub-subscription-id>"
+HUB_TENANT_ID="<hub-tenant-id>"
+
+HUB_RG="NeworkHubRG"
+HUB_VNET_NAME="Hub-Vnet"
+HUB_DNS_RESOLVER_NAME="DNS-resolver"
+
+# From spoke side
+APP_ID="<APP_ID_from_spoke_script>"
+REDIRECT_URI="https://www.microsoft.com"
+
+### ================= SET CONTEXT =================
+echo ">> Setting subscription context to HUB subscription..."
+az account set --subscription "$HUB_SUB_ID"
+
+CUR_TENANT=$(az account show --query tenantId -o tsv)
+if [[ "$CUR_TENANT" != "$HUB_TENANT_ID" ]]; then
+  echo "ERROR: Current tenant is $CUR_TENANT but expected $HUB_TENANT_ID"
+  exit 1
+fi
+
+### ================= ADMIN CONSENT =================
+CONSENT_URL="https://login.microsoftonline.com/${HUB_TENANT_ID}/v2.0/adminconsent?client_id=${APP_ID}&redirect_uri=${REDIRECT_URI}"
+echo ""
+echo ">> If first time, open this URL in a browser as HUB tenant admin and approve:"
+echo "   $CONSENT_URL"
+read -p "Press ENTER after admin consent is completed (or if already done)..."
+
+### ================= VERIFY SP IN HUB TENANT =================
+echo ">> Verifying SP exists in hub tenant..."
+SP_OBJ_ID=$(az ad sp show --id "$APP_ID" --query id -o tsv 2>/dev/null || true)
+if [[ -z "$SP_OBJ_ID" ]]; then
+  echo "ERROR: Service principal with appId $APP_ID not found in hub tenant $HUB_TENANT_ID"
+  echo "Run consent URL above and recheck."
+  exit 1
+fi
+echo "SP ObjectId in hub tenant: $SP_OBJ_ID"
+
+### ================= RESOLVE RESOURCE IDS =================
+echo ">> Resolving hub VNet ID..."
+HUB_VNET_ID=$(az network vnet show \
+  --resource-group "$HUB_RG" \
+  --name "$HUB_VNET_NAME" \
+  --query id -o tsv)
+
+echo ">> Resolving hub DNS Resolver ID..."
+HUB_DNS_RESOLVER_ID=$(az resource show \
+  --resource-group "$HUB_RG" \
+  --name "$HUB_DNS_RESOLVER_NAME" \
+  --resource-type Microsoft.Network/dnsResolvers \
+  --query id -o tsv)
+
+echo "HUB_VNET_ID=$HUB_VNET_ID"
+echo "HUB_DNS_RESOLVER_ID=$HUB_DNS_RESOLVER_ID"
+
+### ================= ASSIGN ROLES =================
+echo ">> Assigning Network Contributor on hub VNet..."
+az role assignment create \
+  --assignee-object-id "$SP_OBJ_ID" \
+  --role "Network Contributor" \
+  --scope "$HUB_VNET_ID"
+
+echo ">> Assigning Reader on hub DNS Resolver..."
+az role assignment create \
+  --assignee-object-id "$SP_OBJ_ID" \
+  --role "Reader" \
+  --scope "$HUB_DNS_RESOLVER_ID"
+
+### ================= OPTIONAL: Inbound endpoint IPs =================
+echo ">> Fetching inbound endpoint IP(s)..."
+az resource list \
+  --resource-group "$HUB_RG" \
+  --resource-type Microsoft.Network/dnsResolvers/inboundEndpoints \
+  --query "[].properties.ipConfigurations[].privateIpAddress" -o tsv
+
+### ================= DONE =================
+echo ""
+echo "======================================================="
+echo " HUB SETUP COMPLETE"
+echo "  - SP ObjectId: $SP_OBJ_ID"
+echo "  - Network Contributor on: $HUB_VNET_ID"
+echo "  - Reader on:              $HUB_DNS_RESOLVER_ID"
+echo ""
+echo "Terraform can now:"
+echo "  1) Peer spoke VNets to the hub VNet"
+echo "  2) Read hub DNS Resolver inbound endpoint IPs"
+echo "======================================================="
