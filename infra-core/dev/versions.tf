@@ -20,6 +20,9 @@ provider "azurerm" {
   tenant_id       = var.spoke_tenant_id
   client_id       = var.client_id
   client_secret   = var.client_secret
+  auxiliary_tenant_ids = [
+    var.hub_tenant_id,
+  ]
 }
 
 provider "azurerm" {
@@ -30,4 +33,7 @@ provider "azurerm" {
   tenant_id       = var.hub_tenant_id
   client_id       = var.client_id
   client_secret   = var.client_secret
+  auxiliary_tenant_ids = [
+    var.spoke_tenant_id,
+  ]
 }
