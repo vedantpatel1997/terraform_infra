@@ -12,3 +12,16 @@ output "subnet_ids" {
   description = "Map of subnet names to subnet IDs for the common VNet."
   value       = module.common_vnet.subnet_ids
 }
+
+output "private_dns_zone_ids" {
+  description = "Map of private DNS zone keys to zone IDs created for the common network."
+  value       = module.private_dns.zone_ids
+}
+
+output "private_endpoint_ids" {
+  description = "Map of private endpoint keys to endpoint IDs created in the common VNet."
+  value = {
+    for key, endpoint in module.private_endpoints :
+    key => endpoint.id
+  }
+}

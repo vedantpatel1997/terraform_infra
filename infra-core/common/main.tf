@@ -97,6 +97,11 @@ locals {
   }
 
   tags = merge(local.base_tags, var.tags)
+
+  peering_names = {
+    to_hub   = format("%s-to-hub", local.sanitized_tokens.environment)
+    from_hub = format("hub-to-%s", local.sanitized_tokens.environment)
+  }
 }
 
 resource "azurerm_resource_group" "network" {
@@ -105,13 +110,38 @@ resource "azurerm_resource_group" "network" {
   tags     = local.tags
 }
 
+data "azurerm_virtual_network" "hub" {
+  name                = var.hub_vnet_name
+  resource_group_name = var.hub_resource_group_name
+
+  provider = azurerm.hub
+}
+
+data "azurerm_private_dns_resolver" "hub" {
+  name                = var.hub_private_dns_resolver_name
+  resource_group_name = var.hub_resource_group_name
+
+  provider = azurerm.hub
+}
+
+data "azurerm_private_dns_resolver_inbound_endpoint" "hub" {
+  name                    = var.hub_private_dns_inbound_endpoint_name
+  private_dns_resolver_id = data.azurerm_private_dns_resolver.hub.id
+
+  provider = azurerm.hub
+}
+
 module "common_vnet" {
   source              = "../../terraform-modules/vnet"
   name                = local.resource_names.vnet_common
   location            = var.location
   resource_group_name = azurerm_resource_group.network.name
   address_space       = var.vnet_address_space
-  tags                = local.tags
+  dns_servers = [
+    for config in data.azurerm_private_dns_resolver_inbound_endpoint.hub.ip_configurations :
+    config.private_ip_address
+  ]
+  tags = local.tags
   subnets = {
     (local.resource_names.snet_private_endpoints) = {
       address_prefixes                              = [var.private_endpoint_subnet_prefix]
@@ -119,4 +149,88 @@ module "common_vnet" {
       private_link_service_network_policies_enabled = false
     }
   }
+}
+
+locals {
+  private_dns_zone_definitions = {
+    for key, zone in var.private_dns_zones :
+    key => {
+      name = zone.name
+      linked_vnet_ids = distinct(concat(
+        try(zone.link_to_common_vnet, true) ? [module.common_vnet.id] : [],
+        try(zone.link_to_hub_vnet, true) ? [data.azurerm_virtual_network.hub.id] : [],
+        var.additional_private_dns_link_vnet_ids,
+        try(zone.additional_linked_vnet_ids, []),
+      ))
+      registration_enabled = try(zone.registration_enabled, false)
+      tags                 = merge(local.tags, try(zone.tags, {}))
+    }
+  }
+
+  private_endpoint_tokens = {
+    for key in keys(var.private_endpoints) :
+    key => trim(
+      regexreplace(
+        regexreplace(lower(trimspace(key)), "[^a-z0-9-]", "-"),
+        "-{2,}",
+        "-",
+      ),
+      "-",
+    )
+  }
+}
+
+module "private_dns" {
+  source              = "../../terraform-modules/private-dns"
+  resource_group_name = azurerm_resource_group.network.name
+  zones               = local.private_dns_zone_definitions
+}
+
+module "private_endpoints" {
+  source   = "../../terraform-modules/private-endpoint"
+  for_each = var.private_endpoints
+
+  name                = format("%s-%s-pe", local.resource_names.vnet_common, local.private_endpoint_tokens[each.key])
+  location            = var.location
+  resource_group_name = azurerm_resource_group.network.name
+  subnet_id           = module.common_vnet.subnet_ids[local.resource_names.snet_private_endpoints]
+  tags                = merge(local.tags, try(each.value.tags, {}))
+
+  private_service_connection = {
+    name                           = format("%s-%s-connection", local.resource_names.vnet_common, local.private_endpoint_tokens[each.key])
+    private_connection_resource_id = each.value.target_resource_id
+    is_manual_connection           = try(each.value.manual_connection, false)
+    subresource_names              = try(each.value.subresource_names, [])
+  }
+
+  private_dns_zone_ids = [
+    for zone_key in try(each.value.zone_keys, []) :
+    module.private_dns.zone_ids[zone_key]
+  ]
+}
+
+resource "azurerm_virtual_network_peering" "common_to_hub" {
+  name                      = local.peering_names.to_hub
+  resource_group_name       = azurerm_resource_group.network.name
+  virtual_network_name      = module.common_vnet.name
+  remote_virtual_network_id = data.azurerm_virtual_network.hub.id
+
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+  use_remote_gateways          = true
+
+  depends_on = [module.common_vnet]
+}
+
+resource "azurerm_virtual_network_peering" "hub_to_common" {
+  name                      = local.peering_names.from_hub
+  resource_group_name       = var.hub_resource_group_name
+  virtual_network_name      = data.azurerm_virtual_network.hub.name
+  remote_virtual_network_id = module.common_vnet.id
+
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+  allow_gateway_transit        = true
+
+  provider = azurerm.hub
 }
