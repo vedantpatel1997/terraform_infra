@@ -7,6 +7,15 @@ terraform {
       version = ">= 4.9.0"
     }
   }
+
+  backend "azurerm" {
+    resource_group_name  = "TerraformStorageAccount"
+    storage_account_name = "terrsaform"
+    container_name       = "terraform"
+    key                  = "infra-core-common.tfstate"
+
+    use_azuread_auth = true
+  }
 }
 
 provider "azurerm" {
