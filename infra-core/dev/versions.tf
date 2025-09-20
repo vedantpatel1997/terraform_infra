@@ -14,9 +14,9 @@ terraform {
     container_name       = "terraform"
     key                  = "infra-core-dev.tfstate"
 
-    # The backend uses Azure AD authentication.  Credentials should be
-    # supplied via environment variables or `-backend-config` arguments when
-    # running `terraform init`.
+    # The backend uses Azure AD authentication. Copy `backend.tfvars.example`
+    # to `backend.tfvars` (or export the equivalent environment variables)
+    # before running `terraform init`.
     use_azuread_auth = true
   }
 }
