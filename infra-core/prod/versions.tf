@@ -15,6 +15,10 @@ terraform {
     key                  = "infra-core-prod.tfstate"
 
     use_azuread_auth = true
+    subscription_id  = var.spoke_subscription_id
+    tenant_id        = var.spoke_tenant_id
+    client_id        = var.client_id
+    client_secret    = var.client_secret
   }
 }
 
