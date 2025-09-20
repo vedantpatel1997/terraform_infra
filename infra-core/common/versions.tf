@@ -14,6 +14,8 @@ terraform {
     container_name       = "terraform"
     key                  = "infra-core-common.tfstate"
 
+    # Use the same service principal credentials as the providers so the
+    # remote state storage account is accessed with the shared identity.
     use_azuread_auth = true
     subscription_id  = var.subscription_id
     tenant_id        = var.tenant_id
