@@ -25,17 +25,12 @@ locals {
 
   sanitized_tokens = {
     for key, value in local.raw_tokens :
-    key => trim(
-      regexreplace(
-        regexreplace(
-          replace(lower(trimspace(value)), "_", "-"),
-          "[^a-z0-9-]",
-          "-",
-        ),
-        "-{2,}",
-        "-",
-      ),
+    key => join(
       "-",
+      regexall(
+        "[a-z0-9]+",
+        replace(lower(trimspace(value)), "_", " "),
+      ),
     )
   }
 
@@ -50,17 +45,12 @@ locals {
   sanitized_resource_definitions = {
     for key, definition in local.naming_definitions :
     key => {
-      purpose = trim(
-        regexreplace(
-          regexreplace(
-            replace(lower(trimspace(definition.purpose)), "_", "-"),
-            "[^a-z0-9-]",
-            "-",
-          ),
-          "-{2,}",
-          "-",
-        ),
+      purpose = join(
         "-",
+        regexall(
+          "[a-z0-9]+",
+          replace(lower(trimspace(definition.purpose)), "_", " "),
+        ),
       )
       resource_type = coalesce(lookup(definition, "resource_type", null), "generic")
       max_length = coalesce(
