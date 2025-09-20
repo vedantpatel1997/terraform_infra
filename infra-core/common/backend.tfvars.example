@@ -1,5 +1,7 @@
-subscription_id  = "<subscription-id>"
-tenant_id        = "<tenant-id>"
-client_id        = "<client-id>"
-client_secret    = "<client-secret>"
-use_azuread_auth = true
+# Copy this file to backend.tfvars and update the values for your environment.
+# Do not commit the generated backend.tfvars file to version control.
+resource_group_name  = "TerraformStorageAccount"
+storage_account_name = "terrsaform"
+container_name       = "terraform"
+key                  = "infra-core-common.tfstate"
+use_azuread_auth     = true

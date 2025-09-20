@@ -9,15 +9,9 @@ terraform {
   }
 
   backend "azurerm" {
-    resource_group_name  = "TerraformStorageAccount"
-    storage_account_name = "terrsaform"
-    container_name       = "terraform"
-    key                  = "infra-core-dev.tfstate"
-
-    # The backend uses Azure AD authentication. Copy `backend.tfvars.example`
-    # to `backend.tfvars` (or export the equivalent environment variables)
+    # Backend settings are supplied via `terraform init -backend-config=backend.tfvars`.
+    # Copy `backend.tfvars.example` to `backend.tfvars` and populate the values
     # before running `terraform init`.
-    use_azuread_auth = true
   }
 }
 
