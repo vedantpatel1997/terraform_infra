@@ -14,3 +14,7 @@ hub_resource_group_name               = "rg-hub-network"
 hub_vnet_name                         = "vnet-hub"
 hub_private_dns_resolver_name         = "pdnsr-hub"
 hub_private_dns_inbound_endpoint_name = "pdnsr-inbound-hub"
+
+tags = {
+  owner = "networking-team"
+}

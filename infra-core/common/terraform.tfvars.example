@@ -7,3 +7,41 @@ subscription_id                = "00000000-0000-0000-0000-000000000000"
 tenant_id                      = "00000000-0000-0000-0000-000000000000"
 client_id                      = "00000000-0000-0000-0000-000000000000"
 client_secret                  = "replace-with-client-secret"
+hub_subscription_id            = "00000000-0000-0000-0000-000000000000"
+hub_tenant_id                  = "00000000-0000-0000-0000-000000000000"
+hub_resource_group_name        = "rg-hub-network"
+hub_vnet_name                  = "vnet-hub"
+hub_private_dns_resolver_name  = "pdnsr-hub"
+hub_private_dns_inbound_endpoint_name = "pdnsr-inbound-hub"
+
+private_dns_zones = {
+  acr = {
+    name = "privatelink.azurecr.io"
+  }
+  keyvault = {
+    name = "privatelink.vaultcore.azure.net"
+  }
+  storage_blob = {
+    name = "privatelink.blob.core.windows.net"
+  }
+}
+
+additional_private_dns_link_vnet_ids = []
+
+private_endpoints = {
+  acr = {
+    target_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-shared/providers/Microsoft.ContainerRegistry/registries/contosoacr"
+    subresource_names  = ["registry"]
+    zone_keys          = ["acr"]
+  }
+  keyvault = {
+    target_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-shared/providers/Microsoft.KeyVault/vaults/contosokv"
+    subresource_names  = ["vault"]
+    zone_keys          = ["keyvault"]
+  }
+}
+
+tags = {
+  owner       = "networking-team"
+  cost_center = "12345"
+}
