@@ -14,13 +14,10 @@ terraform {
     container_name       = "terraform"
     key                  = "infra-core-common.tfstate"
 
-    # Use the same service principal credentials as the providers so the
-    # remote state storage account is accessed with the shared identity.
+    # The backend uses Azure AD authentication.  Credentials should be
+    # supplied via environment variables or `-backend-config` arguments when
+    # running `terraform init`.
     use_azuread_auth = true
-    subscription_id  = var.subscription_id
-    tenant_id        = var.tenant_id
-    client_id        = var.client_id
-    client_secret    = var.client_secret
   }
 }
 
