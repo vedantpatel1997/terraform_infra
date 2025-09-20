@@ -1,0 +1,9 @@
+org_code                       = "contoso"
+environment                    = "common"
+location                       = "australiaeast"
+vnet_address_space             = ["10.30.0.0/16"]
+private_endpoint_subnet_prefix = "10.30.1.0/24"
+subscription_id                = "00000000-0000-0000-0000-000000000000"
+tenant_id                      = "00000000-0000-0000-0000-000000000000"
+client_id                      = "00000000-0000-0000-0000-000000000000"
+client_secret                  = "replace-with-client-secret"
